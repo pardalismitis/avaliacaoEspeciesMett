@@ -75,10 +75,22 @@ atlanticAmphibians <- atlanticAmphibiansSpecies %>%
 atlanticAmphibiansReferences <- read_csv_file("atlantic_amphibians/ATLANTIC_AMPHIBIANS_references.csv")
 ```
 
+## Atlantic Ants
 
 ```{r}
-atlanticAnts <- read_csv_tab("atlantic_ants/ATLANTIC_ANTS_dataset.txt")
-
+atlanticAnts <- read_csv_tab(
+  "atlantic_ants/ATLANTIC_ANTS_dataset.txt"
+  ) %>%
+  mutate(
+  speciesName = paste(Genus, Species)
+  ) %>%
+  select(
+    AANTS.code,
+    speciesName,
+    Latitude.y,
+    Longitude.x
+  ) %>%
+   filter(complete.cases(.))
 ```
 
 
