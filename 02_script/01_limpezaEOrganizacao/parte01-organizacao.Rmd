@@ -31,14 +31,23 @@ read_csv_file <- function(filename) {
     )
 }
 
+
+read_csv_tab <- function(filename) {
+  readr::read_delim(
+    here(
+      "01_dadosDeEntrada", filename
+      ),
+    delim = "\t",
+    show_col_types = FALSE
+    )
+}
+
 ```
 
 
 ## Atlantic-Amphibians
 
-### Importar sites
 ```{r}
-# import sites
 atlanticAmphibiansSites <- read_csv_file(
   "atlantic_amphibians/ATLANTIC_AMPHIBIANS_sites.csv"
   ) %>%
@@ -54,24 +63,22 @@ atlanticAmphibiansSpecies <- read_csv_file(
   ) %>%
   select(
     id,
-    valid_name)
-dplyr::filter(
-    !is.na(species)
+    valid_name
+    ) %>%
+  filter(complete.cases(.))
+
+atlanticAmphibians <- atlanticAmphibiansSpecies %>%
+  left_join(
+    atlanticAmphibiansSites, by = "id"
+    )
 
 atlanticAmphibiansReferences <- read_csv_file("atlantic_amphibians/ATLANTIC_AMPHIBIANS_references.csv")
+```
 
 
-ca_si <- readr::read_csv(
-  here(
-    
-  )
-    "data/dataPapers/atlantic_amphibians/ATLANTIC_AMPHIBIANS_sites.csv"
-    ) #%>%
-    # select only id and coordinates
-    dplyr::select(
-        location_id, X, Y
-        )
-#ca_si
+```{r}
+atlanticAnts <- read_csv_tab("atlantic_ants/ATLANTIC_ANTS_dataset.txt")
+
 ```
 
 
