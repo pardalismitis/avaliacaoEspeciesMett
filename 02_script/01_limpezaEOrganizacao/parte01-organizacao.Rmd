@@ -93,27 +93,39 @@ atlanticAnts <- read_csv_tab(
    filter(complete.cases(.))
 ```
 
+## Atlantic Birds
 
-Arquivos baixados da plataforma Wildlife Insights
+```{r}
+atlanticBirdsQualitative <- read_csv_file(
+  "atlantic_birds/ATLANTIC_BIRDS_qualitative.csv"
+  ) #%>%
+  select(
+    id,
+    latitude,
+    longitude
+    ) %>%
+  filter(complete.cases(.))
 
-```{r leitura, warning=FALSE}
-read_csv_file <- function(filename) {
-  readr::read_csv(
-    here(
-      "01_dadosDeEntrada", filename
-      ),
-    show_col_types = FALSE
+  
+atlanticBirdsQuantitative <- read_csv_file(
+  "atlantic_birds/ATLANTIC_BIRDS_quantitative.csv"
+  )# %>%
+  select(
+    id,
+    valid_name
+    ) %>%
+  filter(complete.cases(.))
+
+atlanticAmphibians <- atlanticAmphibiansSpecies %>%
+  left_join(
+    atlanticAmphibiansSites, by = "id"
     )
-}
 
-cameras <- read_csv_file("cameras.csv")
-deployments <- read_csv_file("deployments.csv")
-projects <- read_csv_file("projects.csv")
-sequences <- read_csv_file("sequences.csv")
-timeLapse <- read_csv_file("templatePELDCCM.csv")
+atlanticAmphibiansReferences <- read_csv_file("atlantic_amphibians/ATLANTIC_AMPHIBIANS_references.csv")
 ```
 
-\newpage
+
+
 
 ### Integrar e organizar informações
 ```{r}
