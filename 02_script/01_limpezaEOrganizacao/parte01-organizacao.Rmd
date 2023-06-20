@@ -1,0 +1,168 @@
+---
+title: "Organização"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+Limpeza de dados de armadilhas fotográficas PELD - CCM.
+
+Desenvolvimento: Fernando Lima, D.Sc.
+
+## PREPARAÇÃO
+
+### PACOTES
+
+```{r pacotes, message=FALSE}
+rm(list = ls(all = TRUE))
+source("../funcoes/pacotes.R")
+pacotes("here", "readr", "dplyr", "stringr")
+```
+
+### Carregar arquivos
+
+```{r}
+read_csv_file <- function(filename) {
+  readr::read_csv(
+    here(
+      "01_dadosDeEntrada", filename
+      ),
+    show_col_types = FALSE
+    )
+}
+
+```
+
+
+## Atlantic-Amphibians
+
+### Importar sites
+```{r}
+# import sites
+atlanticAmphibiansSites <- read_csv_file("atlantic_amphibians/ATLANTIC_AMPHIBIANS_sites.csv")
+
+
+ca_si <- readr::read_csv(
+  here(
+    
+  )
+    "data/dataPapers/atlantic_amphibians/ATLANTIC_AMPHIBIANS_sites.csv"
+    ) #%>%
+    # select only id and coordinates
+    dplyr::select(
+        location_id, X, Y
+        )
+#ca_si
+```
+
+
+Arquivos baixados da plataforma Wildlife Insights
+
+```{r leitura, warning=FALSE}
+read_csv_file <- function(filename) {
+  readr::read_csv(
+    here(
+      "01_dadosDeEntrada", filename
+      ),
+    show_col_types = FALSE
+    )
+}
+
+cameras <- read_csv_file("cameras.csv")
+deployments <- read_csv_file("deployments.csv")
+projects <- read_csv_file("projects.csv")
+sequences <- read_csv_file("sequences.csv")
+timeLapse <- read_csv_file("templatePELDCCM.csv")
+```
+
+\newpage
+
+### Integrar e organizar informações
+```{r}
+dados <- deployments %>%
+  dplyr::left_join(
+    sequences, by = "deployment_id"
+    ) %>%
+  # filtrar identificações a nível de espécie
+  dplyr::filter(
+    !is.na(species)
+  ) %>%
+  # juntar gênero e espécie para nome científico
+  dplyr::mutate(
+    especie = paste(genus, species),
+    placename = substr(deployment_id, 1,4),
+    subproject_name = str_replace(subproject_name, "PAISAGEM ", "L")
+  ) %>%
+  dplyr::rename(
+          ID_Landscape = subproject_name,
+          ID_SamplingPoint = placename
+          ) %>%
+  dplyr::select(
+    ID_Landscape, ID_SamplingPoint, everything()
+  )
+```
+
+```{r}
+# Remove unwanted species
+species_to_remove <- c(
+  "Disparo falso",
+  "Não identificado",
+  "Disparo falso",
+  "Não listado",
+  "Chiroptera"
+  )
+timeLapse <- timeLapse[!timeLapse$Species %in% species_to_remove,]
+
+# Extract IDs from RelativePath column
+timeLapse <- timeLapse %>%
+  mutate(
+    ID_Landscape = substr(RelativePath, 1, 3),
+    ID_SamplingPoint = substr(RelativePath, 4, 7)
+  ) %>%
+  select(ID_Landscape, ID_SamplingPoint, everything()
+  )
+
+sort(unique(timeLapse$Species))
+```
+
+
+```{r}
+dados <- dados %>%
+  # selecionar dados que o Miltinho pediu
+  dplyr::select(
+    subproject_name, placename,family,especie
+    ) %>%
+  # agrupar espécies e plotar número de registros
+  dplyr::group_by(
+    subproject_name, placename, family, especie
+    ) %>%
+  dplyr::summarise(
+    n = n()
+    ) %>%
+  # filtrar registros não identificados
+  dplyr::filter(
+    especie != "No CV Result No CV Result"
+    ) %>%
+  # renomear
+  dplyr::rename(
+          ID_Paisagem = subproject_name,
+          ID_Sitio = placename,
+          Familia = family,
+          Especie = especie,
+          NuRegistros = n)
+
+#checagem
+sort(unique(dados$Especie))
+
+sort(unique(dados$ID_Sitio))
+
+dados$Especie <- gsub("Didelphis marsupialis","Didelphis aurita",
+                          dados$Especie)
+
+```
+
+### Exportar arquivos `*.csv`
+
+```{r}
+readr::write_csv(dados, here("03_dadosDeSaida", "sinteseCamTrapsPELDCCM.csv"))
+```
