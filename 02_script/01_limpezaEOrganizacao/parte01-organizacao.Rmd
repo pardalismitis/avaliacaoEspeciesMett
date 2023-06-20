@@ -39,7 +39,26 @@ read_csv_file <- function(filename) {
 ### Importar sites
 ```{r}
 # import sites
-atlanticAmphibiansSites <- read_csv_file("atlantic_amphibians/ATLANTIC_AMPHIBIANS_sites.csv")
+atlanticAmphibiansSites <- read_csv_file(
+  "atlantic_amphibians/ATLANTIC_AMPHIBIANS_sites.csv"
+  ) %>%
+  select(
+    id,
+    latitude,
+    longitude
+    ) %>%
+  filter(complete.cases(.))
+
+atlanticAmphibiansSpecies <- read_csv_file(
+  "atlantic_amphibians/ATLANTIC_AMPHIBIANS_species.csv"
+  ) %>%
+  select(
+    id,
+    valid_name)
+dplyr::filter(
+    !is.na(species)
+
+atlanticAmphibiansReferences <- read_csv_file("atlantic_amphibians/ATLANTIC_AMPHIBIANS_references.csv")
 
 
 ca_si <- readr::read_csv(
