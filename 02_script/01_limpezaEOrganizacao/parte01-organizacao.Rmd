@@ -42,6 +42,16 @@ read_csv_tab <- function(filename) {
     )
 }
 
+read_csv_file2 <- function(filename) {
+  readr::read_csv2(
+    here(
+      "01_dadosDeEntrada", filename
+      ),
+    show_col_types = FALSE
+    )
+}
+
+
 
 ```
 
@@ -79,20 +89,6 @@ atlanticAmphibians <- atlanticAmphibiansSpecies %>%
 atlanticAmphibiansReferences <- read_csv_file("atlantic_amphibians/ATLANTIC_AMPHIBIANS_references.csv")
 ```
 
-## Cortar para área de interesse
-
-```{r}
-
-# options
-options(timeout = 1e6)
-sf::sf_use_s2(FALSE)
-conexao <- sf::st_read(here("01_dadosDeEntrada/geo", "area_de_abrangencia1_cma_4674.shp"))
-conexaoLogical <- as.logical(conexao)
-
-atlanticAmphibiansConexao <-  atlanticAmphibians[conexao, ] %>% 
-  tibble::rowid_to_column()
-
-```
 ### Exportar arquivos `*.csv`
 
 ```{r}
@@ -191,6 +187,49 @@ readr::write_csv(atlanticBirdsQualitative, here("03_dadosDeSaida", "atlanticBird
 readr::write_csv(atlanticBirdsQuantitative, here("03_dadosDeSaida", "atlanticBirdsQuantitative.csv"))
 ```
 
+
+## Atlantic Butterflies
+
+```{r}
+atlanticButterfliesSites <- read_csv_file2(
+  "atlantic_butterflies/ATLANTIC_BUTTERFLIES_sites.csv"
+  ) %>%
+  select(
+    sites_ID,
+    Latitude,
+    Longitude
+    ) %>%
+  rename(
+    id = sites_ID,
+    latitude = Latitude,
+    longitude = Longitude
+  ) %>%
+  filter(complete.cases(.))
+
+atlanticButterfliesSpecies <- read_csv_file2(
+  "atlantic_butterflies/ATLANTIC_BUTTERFLIES_species.csv"
+  ) %>%
+  select(
+    sites_ID,
+    Species
+    ) %>%
+  rename(
+    id = sites_ID,
+    especie = Species
+  ) %>%
+  filter(complete.cases(.))
+
+atlanticButterflies <- atlanticButterfliesSpecies %>%
+  left_join(
+    atlanticButterfliesSites, by = "id"
+    )
+```
+
+### Exportar arquivos `*.csv`
+
+```{r}
+readr::write_csv(atlanticButterflies, here("03_dadosDeSaida", "atlanticButterflies.csv"))
+```
 
 
 ### Integrar e organizar informações
