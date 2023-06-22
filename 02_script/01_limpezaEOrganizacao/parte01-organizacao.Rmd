@@ -137,7 +137,7 @@ atlanticBirdsQualitative <- read_csv_file(
   "atlantic_birds/ATLANTIC_BIRDS_qualitative.csv"
   ) %>%
   filter(
-    Year > 2003
+    Year > 2002
     ) %>%
   select(
     Record_id,
@@ -158,12 +158,25 @@ atlanticBirdsQualitative <- read_csv_file(
   
 atlanticBirdsQuantitative <- read_csv_file(
   "atlantic_birds/ATLANTIC_BIRDS_quantitative.csv"
-  )# %>%
-  select(
-    id,
-    valid_name
+  ) %>%
+  filter(
+    Year_start > 2002
     ) %>%
-  filter(complete.cases(.))
+  select(
+    Record_id,
+    Species,
+    Latitude_y,
+    Longitude_x
+    ) %>%
+  filter(
+    complete.cases(.)
+    ) %>%
+  rename(
+    id = Record_id,
+    especie = Species,
+    latitude = Latitude_y,
+    longitude = Longitude_x
+  )
 
 atlanticAmphibians <- atlanticAmphibiansSpecies %>%
   left_join(
@@ -175,6 +188,7 @@ atlanticAmphibiansReferences <- read_csv_file("atlantic_amphibians/ATLANTIC_AMPH
 
 ```{r}
 readr::write_csv(atlanticBirdsQualitative, here("03_dadosDeSaida", "atlanticBirdsQualitative.csv"))
+readr::write_csv(atlanticBirdsQuantitative, here("03_dadosDeSaida", "atlanticBirdsQuantitative.csv"))
 ```
 
 
