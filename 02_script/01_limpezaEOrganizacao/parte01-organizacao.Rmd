@@ -22,71 +22,67 @@ pacotes("here", "readr", "dplyr", "stringr", "sf", "tibble")
 ### Carregar arquivos
 
 ```{r}
+areaAbrangenciaConexao <- sf::st_read(here("01_dadosDeEntrada","geo/area_de_abrangencia1_cma_4674.shp"))
+```
+
+
+```{r}
 read_csv_file <- function(filename) {
-  readr::read_csv(
-    here(
-      "01_dadosDeEntrada", filename
-      ),
-    show_col_types = FALSE
-    )
+  readr::read_csv(here("01_dadosDeEntrada", filename), show_col_types = FALSE)
 }
 
 
 read_csv_tab <- function(filename) {
-  readr::read_delim(
-    here(
-      "01_dadosDeEntrada", filename
-      ),
-    delim = "\t",
-    show_col_types = FALSE
-    )
+  readr::read_delim(here("01_dadosDeEntrada", filename), delim = "\t", show_col_types = FALSE)
 }
 
 read_csv_file2 <- function(filename) {
-  readr::read_csv2(
-    here(
-      "01_dadosDeEntrada", filename
-      ),
-    show_col_types = FALSE
-    )
+  readr::read_csv2(here("01_dadosDeEntrada", filename), show_col_types = FALSE)
 }
-
-
-
 ```
-
 
 ## Atlantic-Amphibians
 
 ```{r}
-atlanticAmphibiansSites <- read_csv_file(
-  "atlantic_amphibians/ATLANTIC_AMPHIBIANS_sites.csv"
-  ) %>%
-  select(
-    id,
-    latitude,
-    longitude
-    ) %>%
-  filter(complete.cases(.))
-
-atlanticAmphibiansSpecies <- read_csv_file(
-  "atlantic_amphibians/ATLANTIC_AMPHIBIANS_species.csv"
-  ) %>%
-  select(
-    id,
-    valid_name
-    ) %>%
-  filter(complete.cases(.))
-
+# Read and process sites data
+atlanticAmphibiansSites <- read_csv("atlantic_amphibians/ATLANTIC_AMPHIBIANS_sites.csv") %>%
+  select(id, latitude, longitude) %>%
+  na.omit()
+# Read and process species data
+atlanticAmphibiansSpecies <- read_csv("atlantic_amphibians/ATLANTIC_AMPHIBIANS_species.csv") %>%
+  select(id, valid_name) %>%
+  na.omit()
+# Join sites and species data
 atlanticAmphibians <- atlanticAmphibiansSpecies %>%
-  left_join(
-    atlanticAmphibiansSites, by = "id"
-    ) %>%
-  rename(
-    especie = valid_name
-  )
+  left_join(atlanticAmphibiansSites, by = "id") %>%
+  rename(especie = valid_name)
+# Read references data
+atlanticAmphibiansReferences <- read_csv("atlantic_amphibians/ATLANTIC_AMPHIBIANS_references.csv")
+```
 
-atlanticAmphibiansReferences <- read_csv_file("atlantic_amphibians/ATLANTIC_AMPHIBIANS_references.csv")
+### testando
+```{r}
+# vetor
+# options
+options(timeout = 1e6)
+sf::sf_use_s2(FALSE)
+
+atlanticAmphibiansVetor <- atlanticAmphibians %>% 
+    tidyr::drop_na(longitude, latitude) %>% 
+    dplyr::mutate(lon = longitude,
+                  lat = latitude) %>% 
+    dplyr::filter(lon > -180 & lon < 180) %>% 
+    dplyr::filter(lat > -90 & lat < 90) %>% 
+    sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
+
+plot(atlanticAmphibiansVetor$geometry, pch = 20)
+
+atlanticAmphibiansCMA <- atlanticAmphibiansVetor[areaAbrangenciaConexao, ] %>% 
+  tibble::rowid_to_column()
+
+plot(gatosBrasil$geometry, pch = 20)
+
+
 ```
 
 ### Exportar arquivos `*.csv`
@@ -98,26 +94,11 @@ readr::write_csv(atlanticAmphibians, here("03_dadosDeSaida", "atlanticAmphibians
 ## Atlantic Ants
 
 ```{r}
-atlanticAnts <- read_csv_tab(
-  "atlantic_ants/ATLANTIC_ANTS_dataset.txt"
-  ) %>%
-  mutate(
-  speciesName = paste(Genus, Species)
-  ) %>%
-  select(
-    AANTS.code,
-    speciesName,
-    Latitude.y,
-    Longitude.x
-  ) %>%
-   filter(complete.cases(.)
-          ) %>%
-  rename(
-    id = AANTS.code,
-    especie = speciesName,
-    latitude = Latitude.y,
-    longitude = Longitude.x
-  )
+atlanticAnts <- read_csv_tab("atlantic_ants/ATLANTIC_ANTS_dataset.txt") %>%
+  mutate(speciesName = paste(Genus, Species)) %>%
+  select(AANTS.code, speciesName, Latitude.y, Longitude.x) %>%
+  na.omit() %>%
+  rename(id = AANTS.code, especie = speciesName, latitude = Latitude.y, longitude = Longitude.x)
 ```
 ### Exportar arquivos `*.csv`
 
@@ -125,59 +106,23 @@ atlanticAnts <- read_csv_tab(
 readr::write_csv(atlanticAnts, here("03_dadosDeSaida", "atlanticAnts.csv"))
 ```
 
-
 ## Atlantic Birds
 
 ```{r}
-atlanticBirdsQualitative <- read_csv_file(
-  "atlantic_birds/ATLANTIC_BIRDS_qualitative.csv"
-  ) %>%
-  filter(
-    Year > 2002
-    ) %>%
-  select(
-    Record_id,
-    Species,
-    Latitude_y,
-    Longitude_x
-    ) %>%
-  filter(
-    complete.cases(.)
-    ) %>%
-  rename(
-    id = Record_id,
-    especie = Species,
-    latitude = Latitude_y,
-    longitude = Longitude_x
-  )
+atlanticBirdsQualitative <- read_csv_file("atlantic_birds/ATLANTIC_BIRDS_qualitative.csv") %>%
+  filter(Year > 2002) %>%
+  select(Record_id, Species, Latitude_y, Longitude_x) %>%
+  na.omit() %>%
+  rename(id = Record_id, especie = Species, latitude = Latitude_y, longitude = Longitude_x)
 
-  
-atlanticBirdsQuantitative <- read_csv_file(
-  "atlantic_birds/ATLANTIC_BIRDS_quantitative.csv"
-  ) %>%
-  filter(
-    Year_start > 2002
-    ) %>%
-  select(
-    Record_id,
-    Species,
-    Latitude_y,
-    Longitude_x
-    ) %>%
-  filter(
-    complete.cases(.)
-    ) %>%
-  rename(
-    id = Record_id,
-    especie = Species,
-    latitude = Latitude_y,
-    longitude = Longitude_x
-  )
+atlanticBirdsQuantitative <- read_csv_file("atlantic_birds/ATLANTIC_BIRDS_quantitative.csv") %>%
+  filter(Year_start > 2002) %>%
+  select(Record_id, Species, Latitude_y, Longitude_x) %>%
+  filter(complete.cases(.)) %>%
+  rename(id = Record_id, especie = Species, latitude = Latitude_y, longitude = Longitude_x)
 
 atlanticAmphibians <- atlanticAmphibiansSpecies %>%
-  left_join(
-    atlanticAmphibiansSites, by = "id"
-    )
+  left_join(atlanticAmphibiansSites, by = "id")
 
 atlanticAmphibiansReferences <- read_csv_file("atlantic_amphibians/ATLANTIC_AMPHIBIANS_references.csv")
 ```
@@ -229,6 +174,48 @@ atlanticButterflies <- atlanticButterfliesSpecies %>%
 
 ```{r}
 readr::write_csv(atlanticButterflies, here("03_dadosDeSaida", "atlanticButterflies.csv"))
+```
+
+## Atlantic Primates
+
+```{r}
+atlanticPrimatesOccurrence <- read_csv_file2(
+  "atlantic_primates/ATLANTIC-PR_Occurrence.csv"
+  ) %>%
+  filter(
+    COL_STRT_YR > 2002
+    ) %>%
+  select(
+    ORDEMBD,
+    SPECIES,
+    LATITUDE_Y,
+    LONGITUDE_X
+    ) %>%
+  rename(
+    id = ORDEMBD,
+    especie = SPECIES,
+    latitude = LATITUDE_Y,
+    longitude = LONGITUDE_X
+  ) %>%
+  filter(complete.cases(.))
+```
+
+### Exportar arquivos `*.csv`
+
+```{r}
+readr::write_csv(atlanticPrimatesOccurrence, here("03_dadosDeSaida", "atlanticPrimates.csv"))
+# a partir de dados do plano de ação de pequenos felinos
+
+occ <- occ %>% filter(
+  year > 2002
+  ) %>%
+  select(
+  species,
+  latitude,
+  longitude
+)
+
+readr::write_csv(occ, here("03_dadosDeSaida", "atlanticMammals.csv"))
 ```
 
 
