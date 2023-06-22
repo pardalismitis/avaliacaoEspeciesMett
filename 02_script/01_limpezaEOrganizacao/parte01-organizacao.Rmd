@@ -16,7 +16,7 @@ Desenvolvimento: Fernando Lima, D.Sc.
 ```{r pacotes, message=FALSE}
 rm(list = ls(all = TRUE))
 source("../funcoes/pacotes.R")
-pacotes("here", "readr", "dplyr", "stringr")
+pacotes("here", "readr", "dplyr", "stringr", "sf", "tibble")
 ```
 
 ### Carregar arquivos
@@ -41,6 +41,7 @@ read_csv_tab <- function(filename) {
     show_col_types = FALSE
     )
 }
+
 
 ```
 
@@ -70,9 +71,32 @@ atlanticAmphibiansSpecies <- read_csv_file(
 atlanticAmphibians <- atlanticAmphibiansSpecies %>%
   left_join(
     atlanticAmphibiansSites, by = "id"
-    )
+    ) %>%
+  rename(
+    especie = valid_name
+  )
 
 atlanticAmphibiansReferences <- read_csv_file("atlantic_amphibians/ATLANTIC_AMPHIBIANS_references.csv")
+```
+
+## Cortar para área de interesse
+
+```{r}
+
+# options
+options(timeout = 1e6)
+sf::sf_use_s2(FALSE)
+conexao <- sf::st_read(here("01_dadosDeEntrada/geo", "area_de_abrangencia1_cma_4674.shp"))
+conexaoLogical <- as.logical(conexao)
+
+atlanticAmphibiansConexao <-  atlanticAmphibians[conexao, ] %>% 
+  tibble::rowid_to_column()
+
+```
+### Exportar arquivos `*.csv`
+
+```{r}
+readr::write_csv(atlanticAmphibians, here("03_dadosDeSaida", "atlanticAmphibians.csv"))
 ```
 
 ## Atlantic Ants
@@ -90,21 +114,46 @@ atlanticAnts <- read_csv_tab(
     Latitude.y,
     Longitude.x
   ) %>%
-   filter(complete.cases(.))
+   filter(complete.cases(.)
+          ) %>%
+  rename(
+    id = AANTS.code,
+    especie = speciesName,
+    latitude = Latitude.y,
+    longitude = Longitude.x
+  )
 ```
+### Exportar arquivos `*.csv`
+
+```{r}
+readr::write_csv(atlanticAnts, here("03_dadosDeSaida", "atlanticAnts.csv"))
+```
+
 
 ## Atlantic Birds
 
 ```{r}
 atlanticBirdsQualitative <- read_csv_file(
   "atlantic_birds/ATLANTIC_BIRDS_qualitative.csv"
-  ) #%>%
-  select(
-    id,
-    latitude,
-    longitude
+  ) %>%
+  filter(
+    Year > 2003
     ) %>%
-  filter(complete.cases(.))
+  select(
+    Record_id,
+    Species,
+    Latitude_y,
+    Longitude_x
+    ) %>%
+  filter(
+    complete.cases(.)
+    ) %>%
+  rename(
+    id = Record_id,
+    especie = Species,
+    latitude = Latitude_y,
+    longitude = Longitude_x
+  )
 
   
 atlanticBirdsQuantitative <- read_csv_file(
@@ -124,6 +173,9 @@ atlanticAmphibians <- atlanticAmphibiansSpecies %>%
 atlanticAmphibiansReferences <- read_csv_file("atlantic_amphibians/ATLANTIC_AMPHIBIANS_references.csv")
 ```
 
+```{r}
+readr::write_csv(atlanticBirdsQualitative, here("03_dadosDeSaida", "atlanticBirdsQualitative.csv"))
+```
 
 
 
