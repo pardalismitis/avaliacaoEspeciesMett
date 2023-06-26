@@ -24,6 +24,14 @@ pacotes("here", "readr", "dplyr", "stringr", "sf", "tibble")
 ```{r}
 areaAbrangenciaConexao <- sf::st_read(here("01_dadosDeEntrada","geo/area_de_abrangencia1_cma_4674.shp"))
 ```
+```{r}
+# vetor
+# options
+options(timeout = 1e6)
+sf::sf_use_s2(FALSE)
+areaAbrangenciaConexao <- sf::st_read(here("01_dadosDeEntrada", "geo/area_de_abrangencia1_cma_4674.shp"))
+
+```
 
 
 ```{r}
@@ -45,43 +53,53 @@ read_csv_file2 <- function(filename) {
 
 ```{r}
 # Read and process sites data
-atlanticAmphibiansSites <- read_csv("atlantic_amphibians/ATLANTIC_AMPHIBIANS_sites.csv") %>%
-  select(id, latitude, longitude) %>%
+atlanticAmphibiansSites <- read_csv_file(
+  "atlantic_amphibians/ATLANTIC_AMPHIBIANS_sites.csv"
+  ) %>%
+  select(
+    id,
+    latitude,
+    longitude
+    ) %>%
   na.omit()
 # Read and process species data
-atlanticAmphibiansSpecies <- read_csv("atlantic_amphibians/ATLANTIC_AMPHIBIANS_species.csv") %>%
-  select(id, valid_name) %>%
+atlanticAmphibiansSpecies <- read_csv_file(
+  "atlantic_amphibians/ATLANTIC_AMPHIBIANS_species.csv"
+  ) %>%
+  select(
+    id,
+    valid_name
+    ) %>%
   na.omit()
 # Join sites and species data
 atlanticAmphibians <- atlanticAmphibiansSpecies %>%
-  left_join(atlanticAmphibiansSites, by = "id") %>%
-  rename(especie = valid_name)
+  left_join(
+    atlanticAmphibiansSites,
+    by = "id"
+    ) %>%
+  rename(
+    especie = valid_name
+    )
 # Read references data
 atlanticAmphibiansReferences <- read_csv("atlantic_amphibians/ATLANTIC_AMPHIBIANS_references.csv")
 ```
 
-### testando
+### Filtrar para a área de estudo
 ```{r}
-# vetor
-# options
-options(timeout = 1e6)
-sf::sf_use_s2(FALSE)
-
 atlanticAmphibiansVetor <- atlanticAmphibians %>% 
     tidyr::drop_na(longitude, latitude) %>% 
     dplyr::mutate(lon = longitude,
                   lat = latitude) %>% 
     dplyr::filter(lon > -180 & lon < 180) %>% 
     dplyr::filter(lat > -90 & lat < 90) %>% 
-    sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
-
+  sf::st_as_sf(coords = c("lon", "lat"), crs = 4674)
+    
 plot(atlanticAmphibiansVetor$geometry, pch = 20)
 
 atlanticAmphibiansCMA <- atlanticAmphibiansVetor[areaAbrangenciaConexao, ] %>% 
   tibble::rowid_to_column()
 
-plot(gatosBrasil$geometry, pch = 20)
-
+plot( atlanticAmphibiansCMA$geometry, pch = 20)
 
 ```
 
@@ -89,27 +107,63 @@ plot(gatosBrasil$geometry, pch = 20)
 
 ```{r}
 readr::write_csv(atlanticAmphibians, here("03_dadosDeSaida", "atlanticAmphibians.csv"))
+readr::write_csv(atlanticAmphibians, here("03_dadosDeSaida", "CMA_atlanticAmphibians.csv"))
 ```
 
 ## Atlantic Ants
-
 ```{r}
-atlanticAnts <- read_csv_tab("atlantic_ants/ATLANTIC_ANTS_dataset.txt") %>%
-  mutate(speciesName = paste(Genus, Species)) %>%
-  select(AANTS.code, speciesName, Latitude.y, Longitude.x) %>%
+atlanticAnts <- read_csv_tab(
+  "atlantic_ants/ATLANTIC_ANTS_dataset.txt"
+  ) %>%
+  mutate(
+    speciesName = paste(Genus, Species)
+    ) %>%
+  select(
+    AANTS.code,
+    speciesName,
+    Latitude.y,
+    Longitude.x
+    ) %>%
   na.omit() %>%
-  rename(id = AANTS.code, especie = speciesName, latitude = Latitude.y, longitude = Longitude.x)
+  rename(
+    id = AANTS.code,
+    especie = speciesName,
+    latitude = Latitude.y,
+    longitude = Longitude.x
+    )
 ```
+
+### Filtrar para a área de estudo
+```{r}
+atlanticAntsVetor <- atlanticAnts %>% 
+    tidyr::drop_na(longitude, latitude) %>% 
+    dplyr::mutate(lon = longitude,
+                  lat = latitude) %>% 
+    dplyr::filter(lon > -180 & lon < 180) %>% 
+    dplyr::filter(lat > -90 & lat < 90) %>% 
+  sf::st_as_sf(coords = c("lon", "lat"), crs = 4674)
+    
+plot(atlanticAntsVetor$geometry, pch = 20)
+
+CMA_atlanticAnts <- atlanticAntsVetor[areaAbrangenciaConexao, ] %>% 
+  tibble::rowid_to_column()
+
+plot(CMA_atlanticAnts$geometry, pch = 20)
+```
+
 ### Exportar arquivos `*.csv`
 
 ```{r}
 readr::write_csv(atlanticAnts, here("03_dadosDeSaida", "atlanticAnts.csv"))
+readr::write_csv(CMA_atlanticAnts, here("03_dadosDeSaida", "CMA_atlanticAnts.csv"))
 ```
 
 ## Atlantic Birds
 
 ```{r}
-atlanticBirdsQualitative <- read_csv_file("atlantic_birds/ATLANTIC_BIRDS_qualitative.csv") %>%
+atlanticBirdsQualitative <- read_csv_file(
+  "atlantic_birds/ATLANTIC_BIRDS_qualitative.csv"
+  ) %>%
   filter(Year > 2002) %>%
   select(Record_id, Species, Latitude_y, Longitude_x) %>%
   na.omit() %>%
@@ -121,15 +175,40 @@ atlanticBirdsQuantitative <- read_csv_file("atlantic_birds/ATLANTIC_BIRDS_quanti
   filter(complete.cases(.)) %>%
   rename(id = Record_id, especie = Species, latitude = Latitude_y, longitude = Longitude_x)
 
-atlanticAmphibians <- atlanticAmphibiansSpecies %>%
-  left_join(atlanticAmphibiansSites, by = "id")
-
-atlanticAmphibiansReferences <- read_csv_file("atlantic_amphibians/ATLANTIC_AMPHIBIANS_references.csv")
+atlanticBirds <- dplyr::bind_rows(
+  atlanticBirdsQualitative,
+  atlanticBirdsQuantitative
+  ) %>%
+  dplyr::distinct(
+    especie,
+    longitude,
+    latitude,
+    .keep_all = TRUE
+    )
 ```
 
+### Filtrar para a área de estudo
 ```{r}
-readr::write_csv(atlanticBirdsQualitative, here("03_dadosDeSaida", "atlanticBirdsQualitative.csv"))
-readr::write_csv(atlanticBirdsQuantitative, here("03_dadosDeSaida", "atlanticBirdsQuantitative.csv"))
+atlanticBirdsVetor <- atlanticBirds %>% 
+    tidyr::drop_na(longitude, latitude) %>% 
+    dplyr::mutate(lon = longitude,
+                  lat = latitude) %>% 
+    dplyr::filter(lon > -180 & lon < 180) %>% 
+    dplyr::filter(lat > -90 & lat < 90) %>% 
+  sf::st_as_sf(coords = c("lon", "lat"), crs = 4674)
+    
+plot(atlanticBirdsVetor$geometry, pch = 20)
+
+CMA_atlanticBirds <- atlanticBirdsVetor[areaAbrangenciaConexao, ] %>% 
+  tibble::rowid_to_column()
+
+plot(CMA_atlanticBirds$geometry, pch = 20)
+```
+
+
+```{r}
+readr::write_csv(atlanticBirdsQualitative, here("03_dadosDeSaida", "atlanticBirds.csv"))
+readr::write_csv(atlanticBirdsQuantitative, here("03_dadosDeSaida", "CMA_atlanticBirds.csv"))
 ```
 
 
