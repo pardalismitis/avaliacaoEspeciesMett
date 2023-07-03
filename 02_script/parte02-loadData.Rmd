@@ -1,0 +1,446 @@
+---
+title: "Organização e limpeza - Ação 6.1"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+### PACOTES
+
+```{r pacotes, message=FALSE}
+rm(list = ls(all = TRUE))
+source("../funcoes/pacotes.R")
+pacotes("here", "readr", "dplyr", "stringr", "sf", "tibble", "taxize", "tidyr")
+```
+
+
+```{r}
+atAnfi <- readr::read_csv(
+  here(
+    "03_dadosDeSaida", "CMA_atlanticAmphibians.csv"
+    )
+  ) %>%
+  select(
+    -rowid,
+    -geometry,
+    -ordem,
+    -familia
+         )
+
+atBirds <- readr::read_csv(
+  here(
+    "03_dadosDeSaida", "CMA_atlanticBirds.csv"
+    )
+  ) %>%
+  mutate(
+    genero = word(especie,1),
+    grupo = "Aves",
+    ordem = NA,
+    familia = NA,
+  ) %>%
+  select(
+    id,
+#    ordem,
+ #   familia,
+    genero,
+    especie,
+    grupo,
+    latitude,
+    longitude
+  )
+
+atButterflies <- readr::read_csv(
+  here(
+    "03_dadosDeSaida", "CMA_atlanticButterflies.csv"
+    )
+  ) %>%
+  mutate(
+    grupo = "Borboletas",
+    especie = gsub("_", " ", especie),
+    genero = word(especie,1),
+    ordem = NA,
+    familia = NA
+  )  %>%
+  select(
+    id,
+#    ordem,
+ #   familia,
+    genero,
+    especie,
+    grupo,
+    latitude,
+    longitude
+  )
+
+atMammals <- readr::read_csv(
+  here(
+    "03_dadosDeSaida", "CMA_atlanticMammals.csv"
+    )
+  ) %>%
+  filter(
+    species != "Bos taurus",
+    species != "Canis familiaris",
+    species != "Equus cabalus",
+    species != "Alouatta guariba",
+    species != "Sapajus nigritus",
+    species != "Brachyteles arachnoides",
+    species != "Brachyteles hypoxanthus",
+    species != "Callithrix aurita",
+    species != "Callithrix jacchus",
+    species != "Callithrix penicillata",
+    species != "Callicebus nigrifrons",
+    species != "Leopardus colocolo"
+  ) %>%
+  mutate(
+    grupo = "Mamíferos de Médio e Grande Porte",
+    species = gsub("Leopardus tigrinus", "Leopardus guttulus", species),
+    species = gsub("Dasyprocta iacki", "Dasyprocta leporina", species),
+    species = gsub("Sciurus aestuans", "Guerlinguetus brasiliensis", species),
+    species = gsub("Sciurus aestuans", "Guerlinguetus brasiliensis", species),
+    genero = word(species,1),
+    cod = "mm",
+    id = paste(cod, rowid),
+    ordem = NA,
+    familia = NA
+  ) %>%
+  select(
+    -rowid,
+    -cod
+    ) %>%
+  rename(
+    especie = species
+  )  %>%
+  select(
+    id,
+#    ordem,
+ #   familia,
+    genero,
+    especie,
+    grupo,
+    latitude,
+    longitude
+  )
+  
+atPrimates <- readr::read_csv(
+  here(
+    "03_dadosDeSaida", "CMA_atlanticPrimates.csv"
+    )
+  ) %>%
+  filter(
+    especie != "Callithrix sp,"
+  ) %>%
+  mutate(
+    grupo = "Primatas",
+    genero = word(especie,1),
+    ordem = NA,
+    familia = NA
+  )  %>%
+  select(
+    id,
+#    ordem,
+ #   familia,
+    genero,
+    especie,
+    grupo,
+    latitude,
+    longitude
+  )
+
+
+beesAndWasps <- readr::read_csv(
+  here(
+    "03_dadosDeSaida", "CMA_beesAndWasps.csv"
+    )
+  ) %>%
+  select(
+    -rowid
+  ) %>%
+  rename(
+    grupo = type
+  ) %>%
+  mutate(
+    genero = word(especie,1),
+    ordem = NA,
+    familia = NA
+  ) %>%
+  select(
+    id,
+#    ordem,
+ #   familia,
+    genero,
+    especie,
+    grupo,
+    latitude,
+    longitude
+  )
+
+atBats <- readr::read_csv(
+  here(
+    "03_dadosDeSaida", "atlanticBats.csv"
+    )
+  )  %>%
+  mutate(
+    grupo = "Morcegos",
+    cod = "bat"
+  ) %>%
+  rename(
+    ordem = order,
+    familia = family,
+    genero = genus,
+    especie = species
+  ) %>%
+  select(
+    cod,
+    especie,
+    latitude,
+    longitude,
+    genero,
+    grupo,
+    ordem,
+    familia
+  )
+
+atBatsVetor <- atBats %>% 
+    tidyr::drop_na(longitude, latitude) %>% 
+    dplyr::mutate(lon = longitude,
+                  lat = latitude) %>% 
+    dplyr::filter(lon > -180 & lon < 180) %>% 
+    dplyr::filter(lat > -90 & lat < 90) %>% 
+  sf::st_as_sf(coords = c("lon", "lat"), crs = 4674)
+    
+plot(atBatsVetor$geometry, pch = 20)
+
+CMA_atBats <- atBatsVetor[areaAbrangenciaConexao, ] %>% 
+  tibble::rowid_to_column()
+
+CMA_atBats <- CMA_atBats %>%
+  mutate(
+  id = paste(cod, rowid)
+  #geometry = as.character(geometry)
+) %>%
+  select(
+    id,
+    especie,
+    genero,
+ #   familia,
+#    ordem,
+    latitude,
+    longitude,
+    grupo
+  )
+
+
+readr::write_csv(
+  CMA_atBats,
+  here(
+    "03_dadosDeSaida", "CMA_atlanticBats.csv"
+    )
+  )
+
+CMA_atlanticBats <- readr::read_csv(
+  here(
+    "03_dadosDeSaida", "CMA_atlanticBats.csv"
+    )
+  ) %>%
+  select(
+    id,
+#    ordem,
+ #   familia,
+    genero,
+    especie,
+    grupo,
+    latitude,
+    longitude
+  )
+
+plot(CMA_beesAndWasps$geometry, pch = 20)
+
+
+  occ <- bind_rows(
+  atBirds,
+  atAnfi,
+  atButterflies,
+  atMammals,
+  beesAndWasps,
+  CMA_atlanticBats
+)
+
+write.csv(
+  occ,
+  here(
+    "03_dadosDeSaida", "CMA_ocorrencias3.csv"
+    )
+  )
+  
+
+CMA_atlanticBats <- readr::read_csv(
+  here(
+    "03_dadosDeSaida", "CMA_ocorrencias1.csv"
+    )
+  )
+  
+  
+sort(unique(CMA_atlanticBats$grupo))
+sort(unique(occ$grupo))
+
+
+
+
+
+
+
+
+
+
+
+
+# Carregar dados do Atlantic Camtraps
+at_cam <- readr::read_csv("data/atlantic_camtrap.csv")
+at_cam
+
+# Carregar dados do Neotropical Carnivores
+neo_car <- readr::read_csv("data/neotropical_carnivores.csv")
+neo_car
+
+# Junte os dados
+occ <- dplyr::bind_rows(
+  at_cam,
+  at_lar,
+  neo_car
+  ) %>%
+  # Selecione apenas os campos de interesse sem repetição
+  dplyr::select(-1) %>% 
+    dplyr::distinct(species, longitude, latitude, .keep_all = TRUE)
+occ
+
+```
+
+
+```{r}
+# vetor
+occ_v <- occ %>% 
+    tidyr::drop_na(longitude, latitude) %>% 
+    dplyr::mutate(lon = longitude,
+                  lat = latitude) %>% 
+    dplyr::filter(lon > -180 & lon < 180) %>% 
+    dplyr::filter(lat > -90 & lat < 90) %>% 
+    sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
+occ_v
+
+plot(occ_v$geometry, pch = 20)
+
+```
+
+```{r}
+mamiferos <- occ_v
+mamiferos <- mamiferos %>%
+  dplyr::filter(
+    family == "Felidae"
+  )
+
+mamiferos <- mamiferos[!grepl("sp.", mamiferos$species),]
+
+mamiferos <- mamiferos[!grepl("Panthera onca", mamiferos$species),]
+mamiferos <- mamiferos[!grepl("Puma concolor", mamiferos$species),]
+mamiferos <- mamiferos[!grepl("Felis catus", mamiferos$species),]
+mamiferos <- mamiferos[!grepl("Lynx rufus", mamiferos$species),]
+mamiferos <- mamiferos[!grepl("Leopardus guigna", mamiferos$species),]
+mamiferos <- mamiferos[!grepl("Leopardus jacobita", mamiferos$species),]
+mamiferos$species <- gsub("Puma yagouaroundi","Herpailurus yagouaroundi",
+                          mamiferos$species)
+sort(unique(occ_v$species))
+sort(unique(mamiferos$species))
+plot(mamiferos$geometry, pch = 20)
+
+```
+
+The code first modifies the "species" column, replacing "Puma yagouaroundi" with "Herpailurus yagouaroundi". Then, it adds the columns "order", "family", and "genus" with the specified values. Finally, it modifies the "Observation" column, replacing "cam_trap" with "Camera Trapping" and "Photo" with "Picture/Video". The resulting dataframe is filtered to include only rows where the species is "Herpailurus yagouaroundi" and the year is greater than 2002. The modified dataframe is stored back in the jaguarundi variable.
+
+the case_when() function is used to specify the conditions for replacing values in the "Observation" column. The ~ symbol indicates the replacement value. The TRUE ~ Observation statement is used as the default case, which means that if none of the specified conditions match, the original value will be retained.
+    
+
+```{r}
+jaguarundi <- occ_v
+
+jaguarundi <- jaguarundi %>%
+  mutate(
+    species = gsub("Puma yagouaroundi", "Herpailurus yagouaroundi", species),
+    order = "Carnivora",
+    family = "Felidae",
+    genus = "Herpailurus",
+    Observation = gsub("cam_trap", "Camera Trapping", Observation),
+    Observation = gsub("line_transect|mixed_method", "Direct Sighting", Observation),
+    Observation = gsub("vehicles", "Roadkill", Observation),
+    Observation = case_when(
+      Observation %in% c("Photo", "Photo, Video", "Video") ~ "Picture/Video",
+      TRUE ~ Observation
+    ),
+    SCALP = ifelse(
+      Observation %in% c("Camera Trapping", "Capture", "Picture/Video"),
+      "C1",
+      ifelse(
+        Observation %in% c("Carcass", "Roadkill", "Specimen"),
+        "C2",
+        ifelse(
+          Observation == "Direct Sighting",
+          "C3",
+          Observation
+        )
+      )
+    ),
+    study = ifelse(is.na(study), "Unpublished data", study)
+  ) %>%
+  filter(
+    species == "Herpailurus yagouaroundi",
+    year > 2002
+  )
+
+
+
+
+sort(unique(jaguarundi$Observation))
+sort(unique(jaguarundi$SCALP))
+plot(jaguarundi$geometry, pch = 20)
+
+```
+
+```{r}
+# export data
+readr::write_csv(jaguarundi, "data/herpailurusYagouaroundi.csv")
+
+```
+
+
+
+
+```{r}
+brasil <- sf::st_read("data/geodata/vetor_EstadosBR_LLWGS84/EstadosBR_IBGE_LLWGS84.shp")
+
+gatosBrasil <- mamiferos[brasil, ] %>% 
+  tibble::rowid_to_column()
+
+plot(gatosBrasil$geometry, pch = 20)
+
+gatosBrasil$genus <- word(gatosBrasil$species,1)
+
+unique(sort(gatosBrasil$species))
+
+unique(sort(gatosBrasil$genus))
+
+unique(sort(gatosBrasil$family))
+
+unique(sort(gatosBrasil$order))
+
+gatosBrasil <- gatosBrasil %>%
+  filter(year>1999)
+
+
+```
+
+```{r}
+# export data
+readr::write_csv(gatosBrasil, "data/gatosBrasil.csv")
+
+
+```
+
